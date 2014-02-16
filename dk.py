@@ -12,8 +12,9 @@ database = False
 app = Flask(__name__)
 secret=conf["karmaServer"]["secret"]
 
-karmaTickets = {}
+karmaWaiting = {}
 karmaGivers = {}
+karmaTickets = {}
 
 sysMsg = "you got the sysMsg, prepare to be delta'd"
 
@@ -30,6 +31,7 @@ def requestKarma(uuid, platform, version, name, stoken):
     if stoken == secret:
         logging.debug("attempting to request karma for {0}".format(name))
         database.userRequest(uuid, name, platform, version)
+        karmaWaiting[uuid]=name
         karmaTickets[uuid]=name
         logging.info("Karma requested for {0}".format(name))
         return json.dumps({'success': True})
@@ -43,8 +45,11 @@ def fillKarma(filluuid, uuid, name, platform, version, stoken):
     """complete a karma request row in the database and remove the karma from the active queue"""
     if stoken == secret:
         logging.debug("{0} is trying to fill {1}'s door karma".format(uuid, filluuid))
+        if uuid in karmaTickets:
+            del karmaTickets[uuid]
+        else:
+            return json.dumps({'success': False})
         database.userFilled(filluuid, uuid, name, platform, version)
-        del karmaTickets[uuid]
         return json.dumps({'success': True})
     else:
         logging.warn("User {0} tried to get karma".format(name))
@@ -63,10 +68,10 @@ def readyKarma(uuid, name, stoken):
 
 @app.route('/unreadyKarma/<uuid>/<name>/<stoken>')
 @crossdomain(origin='*')
-def unreadayKarma(uuid, name, stoken):
+def unreadyKarma(uuid, name, stoken):
     if stoken == secret:
         del karmaGivers[uuid]
-        logging.info("{0} is no longetr ready to give karma".format(name))
+        logging.info("{0} is no longer ready to give karma".format(name))
         return json.dumps({'success': True})
     else:
         logging.warn("User {0} tried to get karma".format(name))
@@ -77,17 +82,17 @@ def unreadayKarma(uuid, name, stoken):
 def karmaTicketList(stoken):
     """the people who provide karma need to know who wants it"""
     if stoken == secret:
-        return json.dumps({'success': True, 'waiting': karmaTickets, 'ready': karmaGivers})
+        return json.dumps({'success': True, 'tickets': karmaTickets, 'ready': karmaGivers})
     else:
         logging.warn("User {0} tried to get karma".format(name))
         return json.dumps({'success': False})
 
-@app.route('/waitingPollKarma/<stoken>')
+@app.route('/waitingPollKarma/<uuid>/<stoken>')
 @crossdomain(origin='*')
-def pollWaitingKarma(stoken):
+def pollWaitingKarma(uuid, stoken):
     """these are the people who want karma, they need to know who is coming"""
     if stoken == secret:
-        return json.dumps({'success': True})
+        return json.dumps({'success': True, 'onTheWay': karmaWaiting[uuid] and not (uuid in karmaTickets)})
     else:
         logging.warn("User {0} tried to get karma".format(name))
         return json.dumps({'success': False})
@@ -98,7 +103,7 @@ def readyPoll(stoken):
     """these are the people that are ready to give karma, they get the list of people who want it"""
     if stoken == secret:
         logging.info("Karma giver wanted an update on possible recipients")
-        return json.dumps({'success': True, 'waiting': karmaTickets})
+        return json.dumps({'success': True, 'tickets': karmaTickets})
     else:
         logging.warn("User {0} tried to get karma".format(name))
         return json.dumps({'success': False})
@@ -108,7 +113,7 @@ def readyPoll(stoken):
 def systemMessage(stoken):
     """this function is for sending system messages"""
     logging.info("The system message was sent")
-    return json.dumps({'lastUpdate': 0, 'message': sysMsg})
+    return json.dumps({'lastUpdate': time.time(), 'message': sysMsg})
 
 @app.route('/killKarma/<uuid>/<name>/<stoken>')
 @crossdomain(origin='*')
@@ -116,7 +121,9 @@ def killKarma(uuid, name, stoken):
     """pull the record out of the RAM table"""
     if stoken==secret:
         logging.info("Removing {0} from the karma request list".format(name))
-        del karmaTickets[uuid]
+        del karmaWaiting[uuid]
+        if uuid in karmaTickets:
+            del karmaTickets[uuid]
         return json.dumps({'success': True})
     else:
         logging.warn("User {0} tried to get karma".format(name))
