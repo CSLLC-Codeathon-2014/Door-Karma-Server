@@ -10,15 +10,15 @@ sudo apt-get update
 sudo apt-get install -y mysql-server phpmyadmin python python-mysqldb python-flask
 
 echo "Now I will copy the files into the target folder($TARGET))"
-sudo mkdir -p $TARGET
-sudo cp src/*.py $TARGET
+sudo mkdir -pv $TARGET
+sudo cp -v ../src/*.py $TARGET
 
 echo "Now I will copy the config data into place ($CONFIG)"
-sudo mkdir -p $CONFIG
-sudo cp src/*.json $CONFIG
+sudo mkdir -pv $CONFIG
+sudo cp -v ../src/*.json $CONFIG
 
 echo "Now I will link the init script in."
-sudo ln -s /etc/init.d/doorKarma $TARGET/doorKarma.py
+sudo ln -s $TARGET/doorKarma.py /etc/init.d/doorKarma
 
 echo "Now I will start the service."
 /etc/init.d/doorKarma start
