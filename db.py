@@ -73,3 +73,14 @@ class DoorKarmaDatabase:
 			self.db.rollback()
 			logging.critical("Database error: {0}".format(str(e)))
 			raise e
+
+	def dumpData(self):
+		try:
+			logging.debug("About to dump the database!")
+			self.cur.execute("SELECT * FROM " + self.tablename + " WHERE 1")
+			logging.debug("Successfully dumped; Returning")
+			return self.cur.fetchall()
+		except MySQLdb.OperationalError, e:
+			logging.debug("Select failed")
+			logging.critical("Database error: {0}".format(str(e)))
+			raise e
