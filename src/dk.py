@@ -39,17 +39,16 @@ def requestKarma(uuid, platform, version, name, stoken):
         logging.warn("User {0} tried to get karma".format(name))
         return json.dumps({'success': False})
 
-@app.route('/fillKarma/<filluuid>/<uuid>/<name>/<platform>/<version>/<stoken>')
+@app.route('/fillKarma/<uuid>/<name>/<platform>/<version>/<stoken>')
 @crossdomain(origin='*')
-def fillKarma(filluuid, uuid, name, platform, version, stoken):
+def fillKarma(uuid, name, platform, version, stoken):
     """complete a karma request row in the database and remove the karma from the active queue"""
     if stoken == secret:
-        logging.debug("{0} is trying to fill {1}'s door karma".format(uuid, filluuid))
-        if uuid in karmaTickets:
-            del karmaTickets[uuid]
-        else:
-            return json.dumps({'success': False})
-        database.userFilled(filluuid, uuid, name, platform, version)
+        for filluuid in karmaTickets:
+            name = karmaTickets[filluuid]
+            logging.debug("{0} is trying to fill {1}'s door karma".format(uuid, filluuid))
+            database.userFilled(filluuid, uuid, name, platform, version)
+        karmaTickets.clear()
         return json.dumps({'success': True})
     else:
         logging.warn("User {0} tried to get karma".format(name))
@@ -92,7 +91,7 @@ def karmaTicketList(stoken):
 def pollWaitingKarma(uuid, stoken):
     """these are the people who want karma, they need to know who is coming"""
     if stoken == secret:
-        return json.dumps({'success': True, 'onTheWay': karmaWaiting[uuid] and not (uuid in karmaTickets)})
+        return json.dumps({'success': True, 'onTheWay': uuid in karmaWaiting and not (uuid in karmaTickets)})
     else:
         logging.warn("User {0} tried to get karma".format(uuid))
         return json.dumps({'success': False})
