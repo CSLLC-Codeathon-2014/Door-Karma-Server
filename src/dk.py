@@ -84,7 +84,7 @@ def karmaTicketList(stoken):
     if stoken == secret:
         return json.dumps({'success': True, 'tickets': karmaTickets, 'ready': karmaGivers})
     else:
-        logging.warn("User {0} tried to get karma".format(name))
+        logging.warn("User tried to get karma")
         return json.dumps({'success': False})
 
 @app.route('/waitingPollKarma/<uuid>/<stoken>')
@@ -94,7 +94,7 @@ def pollWaitingKarma(uuid, stoken):
     if stoken == secret:
         return json.dumps({'success': True, 'onTheWay': karmaWaiting[uuid] and not (uuid in karmaTickets)})
     else:
-        logging.warn("User {0} tried to get karma".format(name))
+        logging.warn("User {0} tried to get karma".format(uuid))
         return json.dumps({'success': False})
 
 @app.route('/readyPollKarma/<stoken>')
@@ -105,7 +105,7 @@ def readyPoll(stoken):
         logging.info("Karma giver wanted an update on possible recipients")
         return json.dumps({'success': True, 'tickets': karmaTickets})
     else:
-        logging.warn("User {0} tried to get karma".format(name))
+        logging.warn("A user tried to get an update on who wanted karma")
         return json.dumps({'success': False})
         
 @app.route('/messagePollKarma/<stoken>')
